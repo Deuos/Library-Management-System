@@ -127,12 +127,6 @@ exports.register_post = [
       role: Number.parseInt(req.body.role),
     });
 
-    // Check if passwords match or not.
-    if (!user.passwordsMatch(req.body.password, req.body.password_confirm)) {
-      // Passwords do not match. Create and push an error message.
-      errors.push({ msg: 'Passwords do not match.' });
-    }
-
     if (!errors.isEmpty()) {
       // There are errors. Render the form again with sanitized values/error messages.
       res.render('user_form', {
@@ -147,7 +141,7 @@ exports.register_post = [
       await user.setPassword(req.body.password);
 
       // Check if User with same username already exists.
-      const userExists = await User.findOne({ username: req.body.username }).exec();
+      const userExists = await User.findOne({ username: req.body.username });
       if (userExists) {
         // Username exists, re-render the form with error message.
         res.render('user_form', {
@@ -220,12 +214,9 @@ exports.update_post = [
     .withMessage("Password has non-alphanumeric characters."),
 
   // Process request after validation and sanitization.
-  (req, res, next) => {
+  asyncHandler(async (req, res, next) => {
     // Extract the validation errors from a request.
-    var errors = validationResult(req);
-
-    // Get a handle on errors.array() array.
-    var errorsArray = errors.array();
+    const errors = validationResult(req);
 
     // Create a user object with escaped and trimmed data and the old _id!
     var user = new User({
@@ -243,49 +234,36 @@ exports.update_post = [
       // Check if passwords match or not.
       if (!user.passwordsMatch(req.body.password, req.body.password_confirm)) {
         // Passwords do not match. Create and push an error message.
-        errorsArray.push({ msg: 'Passwords do not match.' });
+        errors.push({ msg: 'Passwords do not match.' });
       } else {
         // Passwords match. Set password.
         user.setPassword(req.body.password);
       }
-    } else {
-      // -- The user does not want to change password. -- //
-
-      // Remove warnings that may be coming from the body(..) validation step above.
-      var filteredErrorsArray = [];
-      errorsArray.forEach(errorObj => {
-        if (!(errorObj.param == 'password' || errorObj.param == 'password_confirm')) {
-          filteredErrorsArray.push(errorObj);
-        }
-      });
-      // Assign filtered array back to original array.
-      errorsArray = filteredErrorsArray;
     }
 
-    if (errorsArray.length > 0) {
+    if (!errors.isEmpty()) {
       // There are errors. Render the form again with sanitized values/error messages.
       res.render('user_form', {
         title: 'Update User',
         user: user,
-        errors: errorsArray,
+        errors: errors.array(),
         is_update_form: true
       });
       return;
     } else {
       // Data from form is valid. Update the record.
-      asyncHandler(async (req, res, next) => {
-        const found_user = await User.findByIdAndUpdate(req.params.id, user, {}).exec();
-        if (found_user === null) {
-          // No results.
-          const err = new Error("User not found");
-          err.status = 404;
-          return next(err);
-        }
-        // Successful - redirect to user detail page.
-        res.redirect(theuser.url);
-      });
+      const found_user = await User.findByIdAndUpdate(req.params.id, user, {});
+      if (found_user === null) {
+        // No results.
+        const err = new Error("User not found");
+        err.status = 404;
+        return next(err);
+      }
+      // Successful - redirect to user detail page.
+      const userPage = '/users/' + req.params.id;
+      res.redirect(userPage);
     }
-  }
+  })
 ];
 
 // Display reset password form on GET.
@@ -319,55 +297,50 @@ exports.reset_post = [
   .withMessage("Please enter a valid email address."),
 
   // Process request after validation and sanitization.
-  (req, res, next) => {
+  asyncHandler(async (req, res, next) => {
     // Extract the validation errors from a request.
-    var errors = validationResult(req);
-
-    // Get a handle on errors.array() array.
-    var errorsArray = errors.array();
+    const errors = validationResult(req);
 
     // Create a user object with escaped and trimmed data.
-    var user = new User({
+    const user = new User({
       username: req.body.username,
       email: req.body.email
     });
 
-    if (errorsArray.length > 0) {
+    if (!errors.isEmpty()) {
       // There are errors. Render the form again with sanitized values/error messages.
       // The user couldn't pass this step yet. Hence we're still in the first step!
       res.render('user_reset', {
         title: 'Reset Password',
         is_first_step: true,
         user: user, // Pass user object created with user-entered values.
-        errors: errorsArray
+        errors: errors.array(),
       });
       return;
     } else {
       // Data from form is valid.
 
       // Check if User exists.
-      asyncHandler(async (req, res, next) => {
-        const found_user = await User.findOne({ username: req.body.username, email: req.body.email }).exec();
-        if (found_user == null) {
-          // User does not exist or credentials didn't match.
-          // Render the form again with error messages. Still first step!
-          res.render('user_reset', {
-            title: 'Reset Password',
-            is_first_step: true,
-            user: user, // Pass user object created with user-entered values.
-            errors: [{ msg: 'The user does not exist or credentials did not match a user. Try again.' }]
-          });
-        }
-        // User exists and credentials did match. Proceed to the second step.
-        // And pass found_user to the form. We'll need user._id in the final step.
+      const found_user = await User.findOne({ username: req.body.username, email: req.body.email });
+      if (found_user == null) {
+        // User does not exist or credentials didn't match.
+        // Render the form again with error messages. Still first step!
         res.render('user_reset', {
           title: 'Reset Password',
-          is_second_step: true,
-          user: found_user // Pass found_user.
+          is_first_step: true,
+          user: user, // Pass user object created with user-entered values.
+          errors: [{ msg: 'The user does not exist or credentials did not match a user. Try again.' }]
         });
-      })
+      }
+      // User exists and credentials did match. Proceed to the second step.
+      // And pass found_user to the form. We'll need user._id in the final step.
+      res.render('user_reset', {
+        title: 'Reset Password',
+        is_second_step: true,
+        user: found_user // Pass found_user.
+      });
     }
-  }
+  })
 ];
 
 // Handle reset password on POST (2nd step).
@@ -385,12 +358,9 @@ exports.reset_post_final = [
   .withMessage("Password has non-alphanumeric characters."),
 
   // Process request after validation and sanitization.
-  (req, res, next) => {
+  asyncHandler(async (req, res, next) => {
     // Extract the validation errors from a request.
-    var errors = validationResult(req);
-
-    // Get a handle on errors.array() array.
-    var errorsArray = errors.array();
+    const errors = validationResult(req);
 
     // Create a user object containing only id field, for now.
     // We need to use old _id, which is coming from found_user passed in the first step.
@@ -398,46 +368,36 @@ exports.reset_post_final = [
       _id: req.body.userid
     });
 
-    // -- Custom Validation -- //
-
-    // Check if passwords match or not.
-    if (!user.passwordsMatch(req.body.password, req.body.password_confirm)) {
-      // Passwords do not match. Create and push an error message.
-      errorsArray.push({ msg: 'Passwords do not match.' });
-    }
-
-    if (errorsArray.length > 0) {
+    if (!errors.isEmpty()) {
       // There are errors. Render the form again with sanitized values/error messages.
       res.render('user_reset', {
         title: 'Reset Password',
         is_second_step: true,
         user: user, // We need to pass user back to form because we will need user._id in the next step.
-        errors: errorsArray
+        errors: errors.array(),
       });
       return;
     } else {
       // Data from form is valid.
 
       // Passwords match. Set password.
-      user.setPassword(req.body.password);
+      await user.setPassword(req.body.password).exec();
 
       // Update the record.
-      asyncHandler(async (req, res, next) => {
-        const found_user = await User.findById(req.body.userid).exec();
-        if (found_user === null) {
-          // No results.
-          const err = new Error("User not found");
-          err.status = 404;
-          return next(err);
-        }
-        user.role = found_user.role;
-        await User.findByIdAndUpdate(req.body.userid, user, {}).exec();
-        // Success, redirect to login page and show a flash message.
-        req.flash('success', 'You have successfully changed your password. You can log in now!');
-        res.redirect('/users/login');
-      }) 
+      const found_user = await User.findById(req.body.userid).exec();
+      if (found_user === null) {
+        // No results.
+        const err = new Error("User not found");
+        err.status = 404;
+        return next(err);
+      }
+      user.role = found_user.role;
+      await User.findByIdAndUpdate(req.body.userid, user, {}).exec();
+      // Success, redirect to login page and show a flash message.
+      req.flash('success', 'You have successfully changed your password. You can log in now!');
+      res.redirect('/users/login');
     }
-  }
+  })
 ];
 
 // -- Helper functions, no need to export. -- //
