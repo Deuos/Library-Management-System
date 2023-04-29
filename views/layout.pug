@@ -9,11 +9,14 @@ html(lang='en')
     script(src='https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/js/bootstrap.min.js')
     link(rel='stylesheet', href='/stylesheets/style.css')
   body
-    div(class='container-fluid')
+    div(class='container-fluid' id="rowContainer")
       div(class='row')
         div(class='col-sm-2')
           block sidebar
-            ul(class='sidebar-nav')
+            ul(class='sidebar-nav text-center ')
+            
+              li 
+                P  User
               li 
                 a(href='/catalog') Home
               li 
@@ -25,7 +28,7 @@ html(lang='en')
               li 
                 a(href='/catalog/bookinstances') All book-instances
               li 
-                hr
+                P Admin
               li 
                 a(href='/catalog/author/create') Create new author
               li 
@@ -35,7 +38,7 @@ html(lang='en')
               li 
                 a(href='/catalog/bookinstance/create') Create new book instance (copy)
                 
-              hr
+              br
               //- The content below will be visible to users who have logged in.
               if isAuthenticated
                 li
