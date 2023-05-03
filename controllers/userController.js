@@ -106,7 +106,7 @@ exports.register_post = [
     .trim()
     .isInt({ min: 0, max: 2 })
     .withMessage("A role must be selected for the user."),
-  body("password", "password_confirm")
+    body("password", "password_confirm")
     .trim()
     .isLength({ min: 4, max: 32 })
     .escape()
@@ -127,16 +127,21 @@ exports.register_post = [
       role: Number.parseInt(req.body.role),
     });
 
-    if (!errors.isEmpty()) {
+    // Check if passwords match or not.
+    const errorArray = errors.array();
+    if (!user.passwordsMatch(req.body.password, req.body.password_confirm)) {
+      errorArray.push({ msg: 'Passwords do not match.' })
+    }
+
+    if (errorArray.length) {
       // There are errors. Render the form again with sanitized values/error messages.
       res.render('user_form', {
         title: 'Create User',
         user: user,
-        errors: errors.array(),
+        errors: errorArray
       });
       return;
     } else {
-      // Data from form is valid.
       // Passwords match. Set password.
       await user.setPassword(req.body.password);
 
@@ -227,30 +232,24 @@ exports.update_post = [
       _id: req.params.id
     });
 
-    // Update password only if the user filled both password fields!
-    if (req.body.password != '' && req.body.password_confirm != '') {
-      // -- The user wants to change password. -- //
-
-      // Check if passwords match or not.
-      if (!user.passwordsMatch(req.body.password, req.body.password_confirm)) {
-        // Passwords do not match. Create and push an error message.
-        errors.push({ msg: 'Passwords do not match.' });
-      } else {
-        // Passwords match. Set password.
-        user.setPassword(req.body.password);
-      }
+    const errorArray = errors.array();
+    if (!user.passwordsMatch(req.body.password, req.body.password_confirm)) {
+      errorArray.push({ msg: 'Passwords do not match.' })
     }
 
-    if (!errors.isEmpty()) {
+    if (errorArray.length) {
       // There are errors. Render the form again with sanitized values/error messages.
       res.render('user_form', {
         title: 'Update User',
         user: user,
-        errors: errors.array(),
+        errors: errorArray,
         is_update_form: true
       });
       return;
     } else {
+      // Passwords match. Set password.
+      user.setPassword(req.body.password);
+
       // Data from form is valid. Update the record.
       const found_user = await User.findByIdAndUpdate(req.params.id, user, {});
       if (found_user === null) {
@@ -368,20 +367,26 @@ exports.reset_post_final = [
       _id: req.body.userid
     });
 
-    if (!errors.isEmpty()) {
+    // Check if passwords match or not.
+    const errorArray = errors.array();
+    if (!user.passwordsMatch(req.body.password, req.body.password_confirm)) {
+      errorArray.push({ msg: 'Passwords do not match.' })
+    }
+
+    if (errorArray.length) {
       // There are errors. Render the form again with sanitized values/error messages.
       res.render('user_reset', {
         title: 'Reset Password',
         is_second_step: true,
         user: user, // We need to pass user back to form because we will need user._id in the next step.
-        errors: errors.array(),
+        errors: errorArray,
       });
       return;
     } else {
       // Data from form is valid.
 
       // Passwords match. Set password.
-      await user.setPassword(req.body.password).exec();
+      await user.setPassword(req.body.password);
 
       // Update the record.
       const found_user = await User.findById(req.body.userid).exec();
