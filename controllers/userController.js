@@ -106,7 +106,7 @@ exports.register_post = [
     .trim()
     .isInt({ min: 0, max: 2 })
     .withMessage("A role must be selected for the user."),
-    body("password", "password_confirm")
+  body("password", "password_confirm")
     .trim()
     .isLength({ min: 4, max: 32 })
     .escape()
