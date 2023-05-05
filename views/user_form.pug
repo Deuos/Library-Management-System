@@ -17,7 +17,7 @@ block content
       label(for='role') User Role:
       select#role.form-control(type='select', placeholder='Select role' name='role' required)
         option(value=0 selected=(undefined===user || user.role!=0 ? false:'selected')) User
-        option(value=1 selected=(undefined===user || user.role!=1 ? false:'selected')) Editor
+        //option(value=1 selected=(undefined===user || user.role!=1 ? false:'selected')) Editor
         option(value=2 selected=(undefined===user || user.role!=2 ? false:'selected')) Admin
 
     if is_update_form
