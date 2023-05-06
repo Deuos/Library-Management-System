@@ -1,5 +1,19 @@
 #! /usr/bin/env node
 
+/*
+    Library Management System
+    Group 3
+	Owen Bessette, Chris Gerk,
+	Jin Lee, Kush Patel, and Sereyvichea Phan
+    Professor Gao
+	CSC-445-01 Software Engineering
+	
+	Code sourced and modified from
+	MDN Express web framework (Node.js/JavaScript)
+	learning resources for beginning developers and students
+	https://developer.mozilla.org/en-US/docs/Learn/Server-side/Express_Nodejs
+*/
+
 console.log(
     'This script populates some test books, authors, genres and bookinstances to your database. Specified database as argument - e.g.: node populatedb "mongodb+srv://cooluser:coolpassword@cluster0.lz91hw2.mongodb.net/local_library?retryWrites=true&w=majority"'
   );
