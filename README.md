@@ -1,13 +1,10 @@
 # Library-Management-System
 Software Engineering Project
 
-##Installation Guide
+## Installation Guide
+- set [const dev_db_url = 'INSERT_VALID_URL_HERE';] to Monogodb Database Url
 - Npm install
-- .env set DB_URL="Mongodb URL" and JWT_TOKEN=Randomwords
-- npm run start
-- Access through Localhost 8080
+- npm run devStart
+- Access through Localhost 3000
 
-
-## Admin Information
-- Admin email: admin@gmail.com
-- Admin Password: password
+By: Owen Bessette, Christopher Gerk, Jin Lee, Kush Patel, and Sereyvichea Phan
